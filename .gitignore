@@ -1,1 +1,4 @@
 .venv
+*.xmp
+*.mp*
+temp
