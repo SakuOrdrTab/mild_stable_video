@@ -10,11 +10,15 @@ I would do like this:
 
 Create a venv:
 
+```
 python -m venv .venv
+```
 
 Activate:
 
+```
 .\.venv\Scripts\activate
+```
 
 Install normal dependancies:
 
