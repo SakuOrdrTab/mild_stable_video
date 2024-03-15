@@ -6,6 +6,7 @@ from PIL import Image
 from mildlyStableVideoPipeline import MildlyStableVideoPipeline
 from mildlyStableXLVideoPipeline import MildlyStableXLVideoPipeline
 from latentStableVideoPipeline import LatentStableVideoPipeline
+from opticalFlowStableVideoPipeline import OpticalFlowStableVideoPipeline   
 
 def convert_video_to_mp4(input_video, output_video):
     """Converts the video to mp4 format using ffmpeg. Uses external subprocess to run the command.
@@ -39,7 +40,7 @@ if __name__ == "__main__":
     negative_prompt = "unrealistic, ugly, plain"
 
     # Transform the video
-    pipe = LatentStableVideoPipeline()
+    pipe = OpticalFlowStableVideoPipeline()
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
