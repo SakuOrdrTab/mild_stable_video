@@ -1,21 +1,11 @@
 import numpy as np
-import os
-import json
 import subprocess
-import time
-import shutil
-
-import imageio # pip install imageio imageio-ffmpeg
-import cv2
-
-import torch
-from diffusers import StableDiffusionImg2ImgPipeline
-from diffusers import DDIMScheduler
 
 from PIL import Image
 
 from mildlyStableVideoPipeline import MildlyStableVideoPipeline
 from mildlyStableXLVideoPipeline import MildlyStableXLVideoPipeline
+from latentStableVideoPipeline import LatentStableVideoPipeline
 
 def convert_video_to_mp4(input_video, output_video):
     """Converts the video to mp4 format using ffmpeg. Uses external subprocess to run the command.
@@ -45,19 +35,19 @@ if __name__ == "__main__":
     input_video = "sample1.mpeg"
     output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
 
-    prompt = "Hallucinogenic colours, with glowing mushrooms illuminating the path for tiny glowing creatures. Strange, otherworldly plants grow amongst the reeds"
-    negative_prompt = "realistic, ordinary, daytime"
+    prompt = "anime girl dancing, very beautiful, anime style, hig"
+    negative_prompt = "unrealistic, ugly, plain"
 
     # Transform the video
-    pipe = MildlyStableXLVideoPipeline()
+    pipe = LatentStableVideoPipeline()
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                guidance_scale=15,
-                image_strength=0.3,
-                inferring_steps=15, 
-                initial_frame_guidance_scale=19, 
-                initial_image_strength=0.3, 
+                guidance_scale=6,
+                image_strength=0.15,
+                inferring_steps=24, 
+                initial_frame_guidance_scale=10, 
+                initial_image_strength=0.15, 
                 last_frame_weight=0.5)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
