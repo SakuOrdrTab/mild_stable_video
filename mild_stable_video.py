@@ -15,18 +15,7 @@ from diffusers import DDIMScheduler
 from PIL import Image
 
 class MildlyStableVideoPipeline():
-    def __init__(self, video_name: str,
-                output_name : str,
-                guidance_scale : int = 7,
-                image_strength : float = 0.1,
-                inferring_steps : int = 10,
-                initial_frame_guidance_scale : int =15,
-                initial_image_strength : float = 0.5,
-                last_frame_weight : float = 0.8):
-        self._video_name = video_name
-        self._output_name = output_name
-        self._frames_folder = os.path.join(".", "temp")
-
+    def __init__(self, ):
         self._model_name = "stabilityai/stable-diffusion-2-base"
         self._pipe = StableDiffusionImg2ImgPipeline.from_pretrained(self.model_name, safety_checker=None)
 
@@ -37,15 +26,6 @@ class MildlyStableVideoPipeline():
 
         self._pipe.scheduler = DDIMScheduler.from_config(self._pipe.scheduler.config)
         self.scheduler_name = self._pipe.scheduler.config._class_name
-
-        self._prompt = "" # Default prompt
-
-        self._guidance = guidance_scale
-        self._strength = image_strength
-        self._passes = inferring_steps
-        self._initial_frame_guidance_scale = initial_frame_guidance_scale
-        self._initial_image_strength = initial_image_strength
-        self._last_frame_weight = last_frame_weight
 
         self._last_transformed_image = None
 
@@ -81,9 +61,7 @@ class MildlyStableVideoPipeline():
 
         # If there's a last transformed image, blend it with the current frame
         if self._last_transformed_image is not None:
-            # Ensure last transformed image is resized to match the current frame
-            last_image_resized = cv2.resize(self._last_transformed_image, (640, 480))
-            frame_to_process = self._blend_images(last_image=last_image_resized, new_frame=resized_frame)
+            frame_to_process = self._blend_images(last_image=self._last_transformed_image, new_frame=resized_frame)
         else:
             # return a more processed image
             frame_to_process = resized_frame
@@ -94,9 +72,11 @@ class MildlyStableVideoPipeline():
         # Process the PIL image with the pipeline
         with torch.no_grad():  # Use torch.no_grad() to reduce memory usage
             transformed_image = self._pipe(prompt=self._prompt,
-                                            image=pil_image,
-                                            strength=self._strength,
-                                            guidance_scale=self._guidance).images[0]
+                                           negative_prompt=self._negative_prompt,
+                                           image=pil_image,
+                                           strength=self._strength,
+                                           guidance_scale=self._guidance,
+                                           num_inference_steps=self._passes).images[0]
 
         # Convert to numpy array to be processed as a frame
         transformed_frame = np.array(transformed_image)
@@ -128,11 +108,13 @@ class MildlyStableVideoPipeline():
 
         # Iterate over, transform, and save each frame as an image
         for i, frame in enumerate(reader):
-            transformed_frame = self._transform_frame(frame)
-            image_path = os.path.join(self._frames_folder, f"frame_{i:04d}.png")
+            image_path = os.path.join(self._frames_folder, f"frame_{i:04d}_transformed.png")
             if not os.path.exists(image_path):  # Only process and save if the frame hasn't been saved before
+                transformed_frame = self._transform_frame(frame)
                 imageio.imwrite(image_path, transformed_frame)
                 print(f"Processed and saved frame {i}")
+            else:
+                print(f"Frame {i} already processed and saved.")
 
         # Save metadata to a JSON file in the frames folder
         metadata_path = os.path.join(self._frames_folder, 'video_metadata.json')
@@ -168,17 +150,41 @@ class MildlyStableVideoPipeline():
         """Deletes the temporary folder and its contents.
         """        
         if os.path.exists(self._frames_folder):
-            shutil.rmtree(self._frames_folder)
+            try:
+                shutil.rmtree(self._frames_folder)
+            except Exception as e:
+                print(f"Error deleting temp folder: {e}")
             print("Temporary folder and its contents have been deleted.")
 
-    def do_magic(self, prompt: str):
+    def do_magic(self,
+                video_name: str,
+                output_name : str,
+                prompt: str = "",
+                negative_prompt: str = "",
+                guidance_scale : int = 7,
+                image_strength : float = 0.1,
+                inferring_steps : int = 10,
+                initial_frame_guidance_scale : int =15,
+                initial_image_strength : float = 0.5,
+                last_frame_weight : float = 0.8):
         """Runs the video through stable diffusion with the prompt and saves the video result.
 
         Args:
             prompt (str): The prompt for altering the video.
         """        
         start_time = time.time()
+        self._video_name = video_name
+        self._output_name = output_name
+        self._guidance = guidance_scale
+        self._strength = image_strength
+        self._passes = inferring_steps
+        self._frames_folder = os.path.join(".", "temp")
+        self._initial_frame_guidance_scale = initial_frame_guidance_scale
+        self._initial_image_strength = initial_image_strength
+        self._last_frame_weight = last_frame_weight
         self._prompt = prompt
+        self._negative_prompt = negative_prompt
+
         # Extract, transform, and save frames
         metadata = self._extract_and_transform_frames()
         
@@ -207,7 +213,10 @@ def convert_video_to_mp4(input_video, output_video):
         'experimental',
         output_video
     ]
-    subprocess.run(command)
+    try:
+        subprocess.run(command)
+    except Exception as e:
+        print(f"Error converting video: {e}")
 
 
 if __name__ == "__main__":
@@ -215,8 +224,16 @@ if __name__ == "__main__":
     output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
 
     # Transform the video
-    pipe = MildlyStableVideoPipeline(input_video, output_video, guidance_scale=20, image_strength=0.1, inferring_steps=20, initial_frame_guidance_scale=20, initial_image_strength=0.3, last_frame_weight=0.9)
-    pipe.do_magic(prompt="cartoon")
+    pipe = MildlyStableVideoPipeline()
+    pipe.do_magic(input_video, output_video,
+                prompt="((watercolour painting)), cool vibrant colours, aquarell",
+                negative_prompt="blurry",
+                guidance_scale=19,
+                image_strength=0.3,
+                inferring_steps=15, 
+                initial_frame_guidance_scale=19, 
+                initial_image_strength=0.3, 
+                last_frame_weight=0.8)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
     # Convert the video to mp4 to ensure compatibility
