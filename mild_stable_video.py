@@ -33,23 +33,24 @@ def convert_video_to_mp4(input_video, output_video):
 
 
 if __name__ == "__main__":
-    input_video = "sample1.mpeg"
+    input_video = "sample3.mpeg"
     output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
 
-    prompt = "anime girl dancing, very beautiful, anime style, hig"
-    negative_prompt = "unrealistic, ugly, plain"
+    prompt = "A painting of finnish marshland by ((Hiroshi Yoshida))"
+    negative_prompt = "unrealistic, ugly, plain, bleak"
 
     # Transform the video
+    # NOTE: needs more continuity
     pipe = OpticalFlowStableVideoPipeline()
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                guidance_scale=6,
-                image_strength=0.15,
-                inferring_steps=24, 
+                guidance_scale=10,
+                image_strength=0.25,
+                inferring_steps=27, 
                 initial_frame_guidance_scale=10, 
-                initial_image_strength=0.15, 
-                last_frame_weight=0.5)
+                initial_image_strength=0.25, 
+                last_frame_weight=0.55)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
     # Convert the video to mp4 to ensure compatibility
