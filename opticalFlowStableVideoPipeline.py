@@ -1,5 +1,6 @@
 import numpy as np
 
+# https://docs.opencv.org/4.x/d4/dee/tutorial_optical_flow.html
 import cv2
 
 import torch
@@ -48,6 +49,7 @@ class OpticalFlowStableVideoPipeline(MildlyStableVideoPipeline):
             frame_to_process = self._blend_images(last_image=self._last_transformed_image, new_frame=frame_to_process)
         else:
             frame_to_process = resized_frame
+            # Use the first frame processing and return the result
             return self._first_frame(frame_to_process)
         
         pil_image = Image.fromarray(frame_to_process)

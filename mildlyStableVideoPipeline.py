@@ -224,3 +224,16 @@ class MildlyStableVideoPipeline():
 
         print(f"The processing took: {(time.time() - start_time)/60:.2f} minutes.")
         self._cleanup_temp_folder()
+
+if __name__ == "__main__":
+    test_pipe = MildlyStableVideoPipeline()
+    # Force some attributes to parent class to test function
+    test_pipe._prompt = "japanese wood painting"
+    test_pipe._negative_prompt = ""
+    test_pipe._initial_frame_guidance_scale = 15
+    test_pipe._initial_image_strength = 0.7
+
+    # Load sample initial image
+    init_image = np.asarray(Image.open("sample_image.jpg"))
+    # Show result that the pipeline returns as an array
+    Image.fromarray(test_pipe._first_frame(init_image)).show()
