@@ -8,6 +8,7 @@ from mildlyStableXLVideoPipeline import MildlyStableXLVideoPipeline
 from latentStableVideoPipeline import LatentStableVideoPipeline
 from opticalFlowStableVideoPipeline import OpticalFlowStableVideoPipeline
 from mildlyStableDepthVideoPipeline import MildlyStableDepthVideoPipeline
+from mildlyKandinsky3VideoPipeline import MildlyKandinsky3VideoPipeline
 
 def convert_video_to_mp4(input_video, output_video):
     """Converts the video to mp4 format using ffmpeg. Uses external subprocess to run the command.
@@ -35,9 +36,10 @@ def convert_video_to_mp4(input_video, output_video):
 
 if __name__ == "__main__":
     input_video = "night_timelapse.mp4"
-    output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
+    output_video = input_video.split(".")[0] + "_XLSD" + ".mpeg"
 
-    prompt = "A painting of finnish marshland by ((Hiroshi Yoshida))"
+    # prompt = "A painting of finnish marshland by ((Hiroshi Yoshida))"
+    prompt = "A painting of finnish marshland by ((Claude Monet)), colourful, vibrant, beautiful, realistic, detailed, vivid, bright, lively, picturesque, scenic, serene, peaceful, tranquil, calm, quiet, harmonious, idyllic, charming, delightful, pleasant, lovely, attractive, pretty, stunning, gorgeous, magnificent, splendid, breathtaking, awe-inspiring, majestic"
     negative_prompt = "unrealistic, ugly, plain, bleak"
 
     # Transform the video
@@ -46,10 +48,10 @@ if __name__ == "__main__":
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                guidance_scale=10,
-                image_strength=0.25,
+                guidance_scale=15,
+                image_strength=0.15,
                 inferring_steps=27, 
-                initial_frame_guidance_scale=10, 
+                initial_frame_guidance_scale=15, 
                 initial_image_strength=0.25, 
                 last_frame_weight=0.55)
     
