@@ -106,7 +106,7 @@ class MildlyStableVideoPipeline():
             return reader, metadata, video_format
         except (RuntimeError, FileNotFoundError) as e:
             print(f"Error reading video: {e}")
-            return None, None
+            return None, None, None
     
     def _extract_and_transform_frames(self):
         """Extracts frames from the video file and writes the files in a temp folder

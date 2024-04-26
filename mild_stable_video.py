@@ -6,7 +6,8 @@ from PIL import Image
 from mildlyStableVideoPipeline import MildlyStableVideoPipeline
 from mildlyStableXLVideoPipeline import MildlyStableXLVideoPipeline
 from latentStableVideoPipeline import LatentStableVideoPipeline
-from opticalFlowStableVideoPipeline import OpticalFlowStableVideoPipeline   
+from opticalFlowStableVideoPipeline import OpticalFlowStableVideoPipeline
+from mildlyStableDepthVideoPipeline import MildlyStableDepthVideoPipeline
 
 def convert_video_to_mp4(input_video, output_video):
     """Converts the video to mp4 format using ffmpeg. Uses external subprocess to run the command.
@@ -33,7 +34,7 @@ def convert_video_to_mp4(input_video, output_video):
 
 
 if __name__ == "__main__":
-    input_video = "sample3.mpeg"
+    input_video = "night_timelapse.mp4"
     output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
 
     prompt = "A painting of finnish marshland by ((Hiroshi Yoshida))"
@@ -41,7 +42,7 @@ if __name__ == "__main__":
 
     # Transform the video
     # NOTE: needs more continuity
-    pipe = OpticalFlowStableVideoPipeline()
+    pipe = MildlyStableVideoPipeline()
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
