@@ -8,7 +8,7 @@ from mildlyStableXLVideoPipeline import MildlyStableXLVideoPipeline
 from latentStableVideoPipeline import LatentStableVideoPipeline
 from opticalFlowStableVideoPipeline import OpticalFlowStableVideoPipeline
 from mildlyStableDepthVideoPipeline import MildlyStableDepthVideoPipeline
-from mildlyKandinsky3VideoPipeline import MildlyKandinsky3VideoPipeline
+
 
 def convert_video_to_mp4(input_video, output_video):
     """Converts the video to mp4 format using ffmpeg. Uses external subprocess to run the command.
