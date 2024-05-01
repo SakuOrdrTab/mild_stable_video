@@ -35,11 +35,10 @@ def convert_video_to_mp4(input_video, output_video):
 
 
 if __name__ == "__main__":
-    input_video = "night_timelapse.mp4"
-    output_video = input_video.split(".")[0] + "_XLSD" + ".mpeg"
+    input_video = "sample2.mpeg"
+    output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
 
-    # prompt = "A painting of finnish marshland by ((Hiroshi Yoshida))"
-    prompt = "A painting of finnish marshland by ((Claude Monet)), colourful, vibrant, beautiful, realistic, detailed, vivid, bright, lively, picturesque, scenic, serene, peaceful, tranquil, calm, quiet, harmonious, idyllic, charming, delightful, pleasant, lovely, attractive, pretty, stunning, gorgeous, magnificent, splendid, breathtaking, awe-inspiring, majestic"
+    prompt = "A japanese wood painting, vivid colours"
     negative_prompt = "unrealistic, ugly, plain, bleak"
 
     # Transform the video
@@ -49,11 +48,11 @@ if __name__ == "__main__":
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 guidance_scale=15,
-                image_strength=0.15,
-                inferring_steps=27, 
+                image_strength=0.2,
+                inferring_steps=30, 
                 initial_frame_guidance_scale=15, 
-                initial_image_strength=0.25, 
-                last_frame_weight=0.55)
+                initial_image_strength=0.2, 
+                last_frame_weight=0.6)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
     # Convert the video to mp4 to ensure compatibility

@@ -189,12 +189,12 @@ class MildlyStableVideoPipeline():
     def do_magic(self,
                 video_name: str,
                 output_name : str,
+                guidance_scale : int,
+                initial_frame_guidance_scale : int,
                 prompt: str = "",
                 negative_prompt: str = "",
-                guidance_scale : int = 7,
                 image_strength : float = 0.1,
                 inferring_steps : int = 10,
-                initial_frame_guidance_scale : int =15,
                 initial_image_strength : float = 0.5,
                 last_frame_weight : float = 0.6):
         """Runs the video through stable diffusion with the prompt and saves the video result.
