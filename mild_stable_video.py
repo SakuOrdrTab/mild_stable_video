@@ -36,23 +36,23 @@ def convert_video_to_mp4(input_video, output_video):
 
 if __name__ == "__main__":
     input_video = "sample2.mpeg"
-    output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
+    output_video = input_video.split(".")[0] + "_SDXL" + ".mpeg"
 
-    prompt = "A japanese wood painting, vivid colours"
+    prompt =  "a ((japanese++ wood painting)) of finnish swamp, vivid colours"
     negative_prompt = "unrealistic, ugly, plain, bleak"
 
     # Transform the video
     # NOTE: needs more continuity
-    pipe = MildlyStableVideoPipeline()
+    pipe = MildlyStableXLVideoPipeline()
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                guidance_scale=15,
-                image_strength=0.2,
+                guidance_scale=13,
+                image_strength=0.1,
                 inferring_steps=30, 
-                initial_frame_guidance_scale=15, 
+                initial_frame_guidance_scale=13, 
                 initial_image_strength=0.2, 
-                last_frame_weight=0.6)
+                last_frame_weight=0.2)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
     # Convert the video to mp4 to ensure compatibility
