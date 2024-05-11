@@ -53,10 +53,10 @@ class MildlyStableXLVideoPipeline(MildlyStableVideoPipeline):
 if __name__ == "__main__":
     test_pipe = MildlyStableXLVideoPipeline()
     # Force some attributes to parent class to test function
-    test_pipe._prompt = " a ((japanese++ wood painting)) of finnish swamp, vivid colours"
+    test_pipe._prompt = " a Van Gogh painting of finnish swamp, vivid colours"
     test_pipe._negative_prompt = ""
     test_pipe._initial_frame_guidance_scale = 14
-    test_pipe._initial_image_strength = 0.1
+    test_pipe._initial_image_strength = 0.8
 
     # Load sample initial image
     init_image = np.asarray(Image.open("sample_image.jpg"))

@@ -38,7 +38,7 @@ if __name__ == "__main__":
     input_video = "sample2.mpeg"
     output_video = input_video.split(".")[0] + "_SDXL" + ".mpeg"
 
-    prompt =  "a ((japanese++ wood painting)) of finnish swamp, vivid colours"
+    prompt =  "Early morning light filtering through the fog over a Finnish swamp, enhancing the depth and colors in the style of a Monet++ landscape"
     negative_prompt = "unrealistic, ugly, plain, bleak"
 
     # Transform the video
@@ -48,11 +48,11 @@ if __name__ == "__main__":
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 guidance_scale=13,
-                image_strength=0.1,
+                image_strength=0.4,
                 inferring_steps=30, 
                 initial_frame_guidance_scale=13, 
-                initial_image_strength=0.2, 
-                last_frame_weight=0.2)
+                initial_image_strength=0.5, 
+                last_frame_weight=0.7)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
     # Convert the video to mp4 to ensure compatibility

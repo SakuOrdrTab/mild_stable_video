@@ -2,6 +2,10 @@
 
 The problem with stable diffusion and video is that it lacks context. There are multiple tools to introduce context to img2img, but none of them are currently feasible with local implementation. The quick key could be taking the last frame in a video sequence and just alter it a bit; this is a small demo what could be achieved by this.
 
+For some examples, try this:
+https://www.youtube.com/watch?v=G8UVR4xrd9g
+
+
 ## Installation
 
 Just install the modules in requirements.txt, but as usual, the packages pertaining to tensor operations are highly platform dependant.
