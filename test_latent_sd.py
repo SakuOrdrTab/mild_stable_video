@@ -3,14 +3,11 @@ import torch
 from diffusers import StableDiffusionImg2ImgPipeline, DDIMScheduler
 from PIL import Image
 
-# Init pipeline
+# Init pipeline, use cuda
 model_name = "stabilityai/stable-diffusion-2-base"
-pipe = StableDiffusionImg2ImgPipeline.from_pretrained(model_name, safety_checker=None)
+pipe = StableDiffusionImg2ImgPipeline.from_pretrained(model_name, safety_checker=None).to("cuda")
 
-# Use GPU
-pipe = pipe.to("cuda")
-
-pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
+# pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
 
 init_image = Image.open("sample_image.jpg")
 
@@ -19,7 +16,7 @@ prompt = "japanese wood painting"
 
 # Disable gradient computation for inference
 with torch.no_grad():
-    # Generate latent representation of the image based on the prompt
+    # Generate latent representations
     latent_result = pipe(prompt=prompt,
                          image=init_image,
                          strength=0.05,
@@ -38,25 +35,21 @@ with torch.no_grad():
     # Move the tensor to the CPU and change the dimensions to (height, width, channels)
     latent_image_numpy = latent_image_tensor.cpu().permute(0, 2, 3, 1).numpy()
 
-    # Convert the numpy array to a PIL image
+    # Convert to PIL image
     latent_image = Image.fromarray((latent_image_numpy[0] * 255).astype(np.uint8))
 
-    # Use the pipeline to generate the final image from the latent representation
+    # Generate final image from latent representation
     final_image = pipe(prompt=prompt,
                        image=latent_image,
                        strength=0.3,
                        guidance_scale=10,
                        output_type="pil").images[0]
+    
+width, height = init_image.size
+combined_image = Image.new('RGB', (width * 3, height))
 
-# Display the decoded latent representation image
-latent_image.show(title="Latent Representation Image")
+combined_image.paste(init_image, (0, 0))
+combined_image.paste(latent_image, (width, 0))
+combined_image.paste(final_image, (width * 2, 0))
 
-# Display the final Stable Diffusion-generated image
-final_image.show(title="Final Stable Diffusion Image")
-
-# Optionally, display the original image for comparison
-init_image.show(title="Original Image")
-
-# Save the images for further comparison
-latent_image.save("latent_image.jpg")
-final_image.save("final_image.jpg")
+combined_image.show()
