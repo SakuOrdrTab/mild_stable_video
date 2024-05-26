@@ -6,3 +6,5 @@ __pycache__/*
 __pycache__
 sample_image.jpg
 saved_samples
+final_image.jpg
+latent_image.jpg
