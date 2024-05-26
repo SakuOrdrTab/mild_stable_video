@@ -40,7 +40,7 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
                                             num_inference_steps=self._passes,
                                             return_latent=True)
 
-        current_latent = diffusion_output["latent"]
+        current_latent = diffusion_output
 
         # Blend latent vectors
         blended_latent = self._blend_latents(current_latent)

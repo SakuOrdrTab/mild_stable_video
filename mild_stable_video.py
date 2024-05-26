@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     # Transform the video
     # NOTE: needs more continuity
-    pipe = MildlyStableXLVideoPipeline()
+    pipe = MildlyStableVideoPipeline()
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
