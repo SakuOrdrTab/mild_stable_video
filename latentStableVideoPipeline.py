@@ -10,18 +10,23 @@ from PIL import Image
 
 from mildlyStableVideoPipeline import MildlyStableVideoPipeline
 
+# How many imagesd are saved in an array and blended
 LATENT_ARRAY_SIZE = 3
 
 class LatentStableVideoPipeline(MildlyStableVideoPipeline):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._model_name += " + Latent blending"
-        self._earlier_latents = [None] * LATENT_ARRAY_SIZE
+        self._earlier_latents = []
 
-    def _blend_latents(self, current_latent):
-        # Simple blending with weights (adjust as needed)
-        blended_latent = 0.15 * self._earlier_latents[0] + 0.7 * current_latent + 0.15 * self._earlier_latents[-2]
-        return blended_latent
+    def _blend_latents(self):
+        # Stack the arrays along a new axis (axis=0)
+        stacked_arrays = np.stack(self._earlier_latents, axis=0)
+        
+        # Calculate the average of the elements along the new axis (axis=0)
+        averaged_array = np.mean(stacked_arrays, axis=0)
+
+        return averaged_array
     
     def _transform_frame(self, frame):
         # Resize the frame to 640x480
@@ -30,30 +35,58 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
         # Convert resized frame to PIL image for pipeline
         pil_image = Image.fromarray(resized_frame)
 
-        with torch.no_grad():  # Use torch.no_grad() to reduce memory usage
-            # Process the PIL image with the pipeline, returning the latent
-            diffusion_output = self._pipe(prompt=self._prompt,
-                                            negative_prompt=self._negative_prompt,
-                                            image=pil_image,
-                                            strength=self._strength,
-                                            guidance_scale=self._guidance,
-                                            num_inference_steps=self._passes,
-                                            return_latent=True)
+        with torch.no_grad():
+            # Generate latent representations
+            latent_result = self._pipe(prompt=self._prompt,
+                                       image=pil_image,  # ensure you use pil_image instead of frame
+                                       strength=0.05,
+                                       guidance_scale=10,
+                                       output_type="latent")
 
-        current_latent = diffusion_output
+        latent_result = latent_result.images
+
+        latent_image_tensor  = self._pipe.vae.decode(latent_result).sample  # Get the tensor from DecoderOutput
+
+        # Rescale the tensor values from [-1, 1] to [0, 1]
+        latent_image_tensor = (latent_image_tensor + 0.5).clamp(0, 1)
+
+        # Detach tensor from the computation graph and convert it to a NumPy array
+        latent_image_numpy = latent_image_tensor.detach().cpu().permute(0, 2, 3, 1).numpy()
+
+
+        # Extract channels
+        r_channel = latent_image_numpy[0, :, :, 0]
+        g_channel = latent_image_numpy[0, :, :, 1]
+        b_channel = latent_image_numpy[0, :, :, 2]
+
+        # Recombine channels
+        adjusted_image_numpy = np.stack([r_channel, g_channel, b_channel], axis=-1)
+
+        # Convert back to PIL image using the adjusted array
+        latent_image = Image.fromarray((adjusted_image_numpy * 255).astype(np.uint8))
+
+        # Manage the list of earlier latents
+        if len(self._earlier_latents) < LATENT_ARRAY_SIZE:
+            self._earlier_latents.append(latent_image)
+        else:
+            # Remove the oldest latent and append the new one
+            self._earlier_latents.pop(0)
+            self._earlier_latents.append(latent_image)
 
         # Blend latent vectors
-        blended_latent = self._blend_latents(current_latent)
+        blended_latent = self._blend_latents()
 
-        # Decode blended latent back to image
-        decoded_image = self._pipe(latent=blended_latent, return_pil=True)["sample"]
+         # Generate final image from latent representation
+        final_image = self._pipe(prompt=self._prompt,
+                                 negative_prompt=self._negative_prompt,
+                                 image=blended_latent,
+                                 strength=self._strength,
+                                 guidance_scale=self._guidance,
+                                 num_inference_steps=self._passes,
+                                 output_type="pil").images[0]
 
         # Convert decoded image to numpy array
-        transformed_frame = np.array(decoded_image)
-
-        # Update the latent array with the current latent
-        self._earlier_latents.append(current_latent)
-        self._earlier_latents = self._earlier_latents[-LATENT_ARRAY_SIZE:]
+        transformed_frame = np.array(final_image)
 
         # Update the last transformed image (for other processing)
         self._last_transformed_image = transformed_frame.copy()
