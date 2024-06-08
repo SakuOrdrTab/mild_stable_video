@@ -36,7 +36,7 @@ def convert_video_to_mp4(input_video, output_video):
 
 if __name__ == "__main__":
     input_video = "sample2.mpeg"
-    output_video = input_video.split(".")[0] + "_SDXL" + ".mpeg"
+    output_video = input_video.split(".")[0] + "_latSD" + ".mpeg"
 
     prompt =  "Early morning light filtering through the fog over a Finnish swamp, enhancing the depth and colors in the style of a Monet++ landscape"
     negative_prompt = "unrealistic, ugly, plain, bleak"

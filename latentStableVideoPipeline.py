@@ -50,20 +50,11 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
         # Rescale the tensor values from [-1, 1] to [0, 1]
         latent_image_tensor = (latent_image_tensor + 0.5).clamp(0, 1)
 
-        # Detach tensor from the computation graph and convert it to a NumPy array
-        latent_image_numpy = latent_image_tensor.detach().cpu().permute(0, 2, 3, 1).numpy()
+        from torchvision.transforms.functional import to_pil_image
 
-
-        # Extract channels
-        r_channel = latent_image_numpy[0, :, :, 0]
-        g_channel = latent_image_numpy[0, :, :, 1]
-        b_channel = latent_image_numpy[0, :, :, 2]
-
-        # Recombine channels
-        adjusted_image_numpy = np.stack([r_channel, g_channel, b_channel], axis=-1)
-
-        # Convert back to PIL image using the adjusted array
-        latent_image = Image.fromarray((adjusted_image_numpy * 255).astype(np.uint8))
+        # Assuming latent_image_tensor is already in the range [0, 1]
+        # You can create a PIL image directly from a PyTorch tensor on GPU
+        latent_image = to_pil_image(latent_image_tensor[0])  # Convert the first tensor in the batch to a PIL image
 
         # Manage the list of earlier latents
         if len(self._earlier_latents) < LATENT_ARRAY_SIZE:
