@@ -3,6 +3,9 @@ import torch
 from diffusers import StableDiffusionImg2ImgPipeline, DDIMScheduler
 from PIL import Image
 
+# CHECK:
+# https://github.com/huggingface/diffusers/issues/2871
+
 # Init pipeline, use cuda
 model_name = "stabilityai/stable-diffusion-2-base"
 pipe = StableDiffusionImg2ImgPipeline.from_pretrained(model_name, safety_checker=None).to("cuda")
