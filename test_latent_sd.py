@@ -3,18 +3,15 @@ import torch
 from diffusers import StableDiffusionImg2ImgPipeline, DDIMScheduler, StableDiffusionPipeline
 from PIL import Image
 
-# CHECK:
-# https://github.com/huggingface/diffusers/issues/2871
-
 # Init pipeline, use cuda
 model_name = "stabilityai/stable-diffusion-2-base"
 pipe = StableDiffusionImg2ImgPipeline.from_pretrained(model_name, safety_checker=None).to("cuda")
 output_pipe = StableDiffusionPipeline.from_pretrained(model_name, safety_checker=None).to("cuda")
 
-init_image = Image.open("sample_image.jpg")
+init_image = Image.open("sample_image.jpg").convert("RGB")
 
 # The prompt
-prompt = "highly detailed japanese wood painting by Hokusai"
+prompt = "A finnish marsh at night"
 
 # Disable gradient computation for inference
 with torch.no_grad():
@@ -28,31 +25,26 @@ with torch.no_grad():
     # Extract the latent representation
     latents = latent_result.images
 
+    # latents 
 
-    # Have to use Vae as pipe.decode_latents is deprecated :(
-    latent_image_tensor = pipe.vae.decode(latents).sample  / 0.18215  # Get the tensor from DecoderOutput
+    # Decode the latents to an image
+    latent_image_tensor = pipe.vae.decode(latents).sample
+    latent_image_tensor = (latent_image_tensor / 2 + 0.5).clamp(0, 1)  # Normalize to [0, 1]
 
-    print("Latent tensor min:", latent_image_tensor.min())
-    print("Latent tensor max:", latent_image_tensor.max())
-
-    # Remove extra dimensions and ensure the tensor is in the correct format (H, W, C)
-    latent_image_numpy = latents[0].permute(1, 2, 0).cpu().numpy()  # Assuming 'latent' is the batch with one image
-
-    latent_image_numpy = latent_image_numpy  +  0.5
-
-    # Ensure the data is in the correct range and type
-    latent_image_numpy = (latent_image_numpy * 255).clip(0, 255).astype(np.uint8)
+    # Convert the tensor to numpy
+    latent_image_numpy = latent_image_tensor[0].permute(1, 2, 0).cpu().numpy()
 
     # Convert to PIL Image
-    latent_image = Image.fromarray(latent_image_numpy)
+    latent_image = Image.fromarray((latent_image_numpy * 255).astype(np.uint8))
 
     # Generate final image from latent representation
     final_image = output_pipe(prompt=prompt,
-                       latents=latents,
-                       num_inference_steps=30,
-                       strength=15,
-                       output_type="pil").images[0]
-    
+                              latents=latents,
+                              num_inference_steps=30,
+                              guidance_scale=10,
+                              output_type="pil").images[0]
+
+# Combine the images for display
 width, height = init_image.size
 combined_image = Image.new('RGB', (width * 3, height))
 
