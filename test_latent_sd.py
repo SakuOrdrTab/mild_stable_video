@@ -14,14 +14,14 @@ output_pipe = StableDiffusionPipeline.from_pretrained(model_name, safety_checker
 init_image = Image.open("sample_image.jpg")
 
 # The prompt
-prompt = "japanese wood painting"
+prompt = "highly detailed japanese wood painting by Hokusai"
 
 # Disable gradient computation for inference
 with torch.no_grad():
     # Generate latent representations
     latent_result = pipe(prompt=prompt,
                          image=init_image,
-                         strength=0.05,
+                         strength=0.35,
                          guidance_scale=10,
                          output_type="latent")
 
@@ -34,9 +34,6 @@ with torch.no_grad():
 
     print("Latent tensor min:", latent_image_tensor.min())
     print("Latent tensor max:", latent_image_tensor.max())
-
-    # Convert the tensor to CPU and change dimensions for image conversion
-    #   latent_image_tensor = latent_image_tensor.cpu() + 0.5
 
     # Remove extra dimensions and ensure the tensor is in the correct format (H, W, C)
     latent_image_numpy = latents[0].permute(1, 2, 0).cpu().numpy()  # Assuming 'latent' is the batch with one image
@@ -51,10 +48,9 @@ with torch.no_grad():
 
     # Generate final image from latent representation
     final_image = output_pipe(prompt=prompt,
-
                        latents=latents,
-                       strength=0.15,
-                       guidance_scale=10,
+                       num_inference_steps=30,
+                       strength=15,
                        output_type="pil").images[0]
     
 width, height = init_image.size
