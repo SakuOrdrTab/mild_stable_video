@@ -35,15 +35,15 @@ def convert_video_to_mp4(input_video, output_video):
 
 
 if __name__ == "__main__":
-    input_video = "sample2.mpeg"
-    output_video = input_video.split(".")[0] + "_latSD" + ".mpeg"
+    input_video = "pneuma_espanda.mp4"
+    output_video = input_video.split(".")[0] + "_SDXL" + ".mpeg"
 
-    prompt =  "Early morning light filtering through the fog over a Finnish swamp, enhancing the depth and colors in the style of a Monet++ landscape"
-    negative_prompt = "unrealistic, ugly, plain, bleak"
+    prompt =  "gothic disney cartoon style photo"
+    negative_prompt = "unrealistic, ugly, colourful"
 
     # Transform the video
     # NOTE: needs more continuity
-    pipe = LatentStableVideoPipeline()
+    pipe = MildlyStableXLVideoPipeline()
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
