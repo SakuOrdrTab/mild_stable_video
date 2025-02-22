@@ -1,19 +1,20 @@
+# NO IMAGE2IMAGE YET! 110824
+
 import numpy as np
 from PIL import Image
 
 from mildlyStableVideoPipeline import MildlyStableVideoPipeline
 
-from diffusers import AutoPipelineForImage2Image
+from diffusers import StableDiffusion3Pipeline, AutoPipelineForImage2Image
 
-from diffusers import StableDiffusionXLPipeline, StableDiffusionXLImg2ImgPipeline
 from diffusers import DDIMScheduler
 import torch
 
-class MildlyStableXLVideoPipeline(MildlyStableVideoPipeline):
-    """Stable Diffusion XL model pipeline"""
+class MildlySD3VideoPipeline(MildlyStableVideoPipeline):
+    """Stable Diffusion 3 medium model pipeline"""
     def __init__(self):
-        self._model_name = "stabilityai/stable-diffusion-xl-base-1.0"
-        self._txt2img_pipeline = StableDiffusionXLPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0",
+        self._model_name = "stabilityai/stable-diffusion-3-medium-diffusers"
+        self._txt2img_pipeline = StableDiffusion3Pipeline.from_pretrained(self._model_name,
                                                                torch_dtype=torch.float16, 
                                                                variant="fp16", 
                                                                use_safetensors=True,
@@ -21,11 +22,10 @@ class MildlyStableXLVideoPipeline(MildlyStableVideoPipeline):
                                                             ).to("cuda")
         self._pipe = AutoPipelineForImage2Image.from_pipe(self._txt2img_pipeline).to("cuda")
 
-        self._pipe.scheduler = DDIMScheduler.from_config(self._pipe.scheduler.config)
-        self.scheduler_name = self._pipe.scheduler.config._class_name
-
-        self._last_transformed_image = None
+        # self._pipe.scheduler = DDIMScheduler.from_config(self._pipe.scheduler.config)
+        # self.scheduler_name = self._pipe.scheduler.config._class_name
         torch.manual_seed(66)  # Set the seed for reproducibility
+        self._last_transformed_image = None
 
     def _first_frame(self, frame):
         """The first frame of the sequence gets a special treatment. There is no previous
@@ -52,9 +52,9 @@ class MildlyStableXLVideoPipeline(MildlyStableVideoPipeline):
     
 
 if __name__ == "__main__":
-    test_pipe = MildlyStableXLVideoPipeline()
+    test_pipe = MildlySD3VideoPipeline()
     # Force some attributes to parent class to test function
-    test_pipe._prompt = " a Van Gogh painting of finnish swamp, vivid colours"
+    test_pipe._prompt = "a japanese wood painting of finnish swamp, vivid colours"
     test_pipe._negative_prompt = ""
     test_pipe._initial_frame_guidance_scale = 14
     test_pipe._initial_image_strength = 0.8

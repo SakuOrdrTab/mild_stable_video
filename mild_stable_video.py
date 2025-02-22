@@ -35,11 +35,11 @@ def convert_video_to_mp4(input_video, output_video):
 
 
 if __name__ == "__main__":
-    input_video = "pneuma_espanda.mp4"
-    output_video = input_video.split(".")[0] + "_SDXL" + ".mpeg"
+    input_video = "sample3.mpeg"
+    output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
 
-    prompt =  "gothic disney cartoon style photo"
-    negative_prompt = "unrealistic, ugly, colourful"
+    prompt =  "a japanese woodpainting of a finnish swamp."
+    negative_prompt = "distortions, blurred"
 
     # Transform the video
     # NOTE: needs more continuity
@@ -48,11 +48,11 @@ if __name__ == "__main__":
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 guidance_scale=13,
-                image_strength=0.4,
+                image_strength=0.25,
                 inferring_steps=30, 
                 initial_frame_guidance_scale=13, 
-                initial_image_strength=0.5, 
-                last_frame_weight=0.7)
+                initial_image_strength=0.25, 
+                last_frame_weight=0.4)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
     # Convert the video to mp4 to ensure compatibility

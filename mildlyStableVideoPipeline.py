@@ -28,6 +28,7 @@ class MildlyStableVideoPipeline():
         self.scheduler_name = self._pipe.scheduler.config._class_name
 
         self._last_transformed_image = None
+        torch.manual_seed(66)  # Set the seed for reproducibility
 
     @property
     def model_name(self):
