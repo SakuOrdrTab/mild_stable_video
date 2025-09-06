@@ -1,5 +1,6 @@
 import numpy as np
 import subprocess
+import os
 
 from PIL import Image
 
@@ -9,6 +10,13 @@ from latentStableVideoPipeline import LatentStableVideoPipeline
 from opticalFlowStableVideoPipeline import OpticalFlowStableVideoPipeline
 from mildlyStableDepthVideoPipeline import MildlyStableDepthVideoPipeline
 from flowWarpedVideoPipeline import FlowWarpedVideoPipeline
+
+# Constants
+SD_MARKER = "_FW" # How to mark what actual pipeline was used for the output video name
+INPUT_DIR = "input_videos"
+OUTPUT_DIR = "output_videos"
+INPUT_VIDEO_NAME = "tyttospider_tekee_paketin.mp4"
+OUTPUT_VIDEO_NAME = INPUT_VIDEO_NAME.split(".")[0] + SD_MARKER + ".mpeg"
 
 def convert_video_to_mp4(input_video, output_video):
     """Converts the video to mp4 format using ffmpeg. Uses external subprocess to run the command.
@@ -35,10 +43,10 @@ def convert_video_to_mp4(input_video, output_video):
 
 
 if __name__ == "__main__":
-    input_video = "kauriit_whatsapp.mp4"
-    output_video = input_video.split(".")[0] + "_SD" + ".mpeg"
+    input_video = os.path.join(INPUT_DIR, INPUT_VIDEO_NAME)
+    output_video = os.path.join(OUTPUT_DIR, OUTPUT_VIDEO_NAME)
 
-    prompt =  "An image in japanese wood painting style"
+    prompt =  "Terrible monster spiders in a web, cinematic lighting, psychedelic colors, nightmarish"
     negative_prompt = "distortions, blurred"
 
     # Transform the video
