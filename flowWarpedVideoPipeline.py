@@ -6,8 +6,11 @@ import torch.nn.functional as F
 from diffusers import StableDiffusionImg2ImgPipeline, EulerDiscreteScheduler
 from PIL import Image
 
-from mildlyStableVideoPipeline import MildlyStableVideoPipeline
+# By just importing a different base image tranformation pipeline, we can swap out the underlying model.
 
+# from mildlyStableVideoPipeline import MildlyStableVideoPipeline
+# SD3 does not work, as it uses a tranformer backbnone instead of unet
+from mildlyStableXLVideoPipeline import MildlyStableXLVideoPipeline as MildlyStableVideoPipeline
 
 def _encode_latents(vae, pil_image, device, dtype):
     """Encode RGB PIL image -> latent z0 (scaled) deterministically."""

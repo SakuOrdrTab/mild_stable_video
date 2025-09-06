@@ -15,7 +15,7 @@ from flowWarpedVideoPipeline import FlowWarpedVideoPipeline
 SD_MARKER = "_FW" # How to mark what actual pipeline was used for the output video name
 INPUT_DIR = "input_videos"
 OUTPUT_DIR = "output_videos"
-INPUT_VIDEO_NAME = "tyttospider_tekee_paketin.mp4"
+INPUT_VIDEO_NAME = "sample2.mpeg"
 OUTPUT_VIDEO_NAME = INPUT_VIDEO_NAME.split(".")[0] + SD_MARKER + ".mpeg"
 
 def convert_video_to_mp4(input_video, output_video):
