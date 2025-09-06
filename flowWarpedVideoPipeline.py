@@ -66,9 +66,6 @@ class FlowWarpedVideoPipeline(MildlyStableVideoPipeline):
         super().__init__(**kwargs)
         self._model_name += " + Flow Warping"
 
-        # Swap to a robust scheduler for img2img
-        self._pipe.scheduler = EulerDiscreteScheduler.from_config(self._pipe.scheduler.config)
-
         # caches for temporal coherence
         self._prev_noise = None      # torch tensor (1,4,h,w)
         self._prev_frame = None      # np.uint8 (H,W,3) RGB
@@ -93,6 +90,9 @@ class FlowWarpedVideoPipeline(MildlyStableVideoPipeline):
         # strength for latent-content blending across frames (flow-warped)
         # reuse your last_frame_weight but soften it (latent blend should be gentle)
         self._beta_latent_blend = 0.25 * getattr(self, "_last_frame_weight", 0.6)
+
+        self._debug_disable_custom_latents = False  # set True to test pipeline without latents
+
 
     def _calc_flow(self, prev_rgb_uint8, curr_rgb_uint8):
         prev_gray = cv2.cvtColor(prev_rgb_uint8, cv2.COLOR_RGB2GRAY)
@@ -123,56 +123,116 @@ class FlowWarpedVideoPipeline(MildlyStableVideoPipeline):
 
     @torch.no_grad()
     def _stylize_with_flow(self, frame_rgb_uint8, prompt, negative_prompt, strength, guidance, steps, seed):
-        """
-        Core per-frame routine: encode -> build/warp noise -> add noise at t0 -> pipeline denoise (with latents).
-        """
-        device = self._pipe.device
-        dtype = next(self._pipe.unet.parameters()).dtype
+        # ---- device & dtype (robust across SD 1.x/2.x/XL)
+        # prefer pipeline execution device
+        exec_dev = getattr(self._pipe, "_execution_device", None)
+        device = exec_dev if exec_dev is not None else next(self._pipe.vae.parameters()).device
+        vae_dtype = next(self._pipe.vae.parameters()).dtype
+        # main model dtype (UNet for SD/XL)
+        model_param = next(self._pipe.unet.parameters())
+        model_dtype = model_param.dtype
 
-        # Ensure dimensions are multiples of 8 (SD constraint). Your 640x480 is fine.
+        # Ensure multiples of 8 (you already resize to 640x480 later)
         H, W, _ = frame_rgb_uint8.shape
         if (H % 8) != 0 or (W % 8) != 0:
             H8, W8 = (H // 8) * 8, (W // 8) * 8
             frame_rgb_uint8 = cv2.resize(frame_rgb_uint8, (W8, H8), interpolation=cv2.INTER_AREA)
-            H, W = H8, W8
 
         pil = Image.fromarray(frame_rgb_uint8)
 
-        # 1) Encode init image -> z0 (deterministic)
-        z0 = _encode_latents(self._pipe.vae, pil, device, dtype)  # (1,4,h,w)
-        h, w = z0.shape[-2:]
+        # 1) Encode current frame -> z0 (deterministic)
+        z0 = _encode_latents(self._pipe.vae, pil, device, vae_dtype)  # (1,4,h,w)
 
-        # 2) Build or warp starting noise (shape matches z0)
+        # 2) Build / warp starting noise (same shape as z0)
+        h, w = z0.shape[-2:]
         gen = torch.Generator(device=device).manual_seed(int(seed))
         if self._prev_noise is None:
-            noise = torch.randn((1, 4, h, w), generator=gen, device=device, dtype=dtype)
+            noise = torch.randn((1, 4, h, w), generator=gen, device=device, dtype=vae_dtype)
         else:
-            flow = self._calc_flow(self._prev_frame, frame_rgb_uint8)  # (H,W,2)
-            noise = _warp_tensor_with_flow(self._prev_noise, flow, device, dtype, mode="bilinear")
+            flow = self._calc_flow(self._prev_frame, frame_rgb_uint8)
+            noise = _warp_tensor_with_flow(self._prev_noise, flow, device, vae_dtype, mode="bilinear")
 
-        # 3) Optional: light latent-content blend (flow-warped previous z0)
+        # 3) Optional: light latent-content blend (flow-warped z0)
         beta = float(self._beta_latent_blend)
         if self._prev_z0 is not None and beta > 0.0:
             flow = self._calc_flow(self._prev_frame, frame_rgb_uint8)
-            prev_z0_warp = _warp_tensor_with_flow(self._prev_z0, flow, device, dtype, mode="bilinear")
+            prev_z0_warp = _warp_tensor_with_flow(self._prev_z0, flow, device, vae_dtype, mode="bilinear")
             z0 = (1.0 - beta) * z0 + beta * prev_z0_warp
 
-        # 4) Compute starting timestep and create initial *noisy* latents
-        timesteps, t_start = self._prep_timesteps(steps, strength)
-        start_t = timesteps[t_start]  # scheduler step to which we add noise
-        latents = self._pipe.scheduler.add_noise(z0, noise, start_t.unsqueeze(0))
-        # or: latents = self._pipe.scheduler.add_noise(z0, noise, [start_t])
+        # 4) Compute starting timestep and create starting *noisy* latents (sigma-aware, fp32 math)
+        self._pipe.scheduler.set_timesteps(steps, device=device)
+        timesteps = self._pipe.scheduler.timesteps
+        init_t = int(steps * float(strength))
+        t_start = max(steps - init_t, 0)
+        start_t = timesteps[t_start]
 
+        # do noise math in float32 to avoid fp16 under/overflow
+        z0_f32 = z0.float()
+        noise_f32 = noise.float()
 
-        # 5) Run the *pipeline* with our custom latents (it will skip encoding & noise add)
+        sigmas = getattr(self._pipe.scheduler, "sigmas", None)
+        if sigmas is not None and hasattr(self._pipe.scheduler, "index_for_timestep"):
+            idx = self._pipe.scheduler.index_for_timestep(start_t, timesteps)
+            sigma = sigmas[idx].to(device=z0_f32.device, dtype=z0_f32.dtype)
+            latents_f32 = z0_f32 + noise_f32 * sigma
+        else:
+            # generic fallback if scheduler doesn't expose sigmas
+            # make sure timestep is 1-D on correct device
+            latents_f32 = self._pipe.scheduler.add_noise(
+                z0_f32, noise_f32, start_t.unsqueeze(0).to(device=device)
+            )
+
+        # guard against NaNs/Infs
+        if torch.isnan(latents_f32).any() or torch.isinf(latents_f32).any():
+            # conservative fallback: lower strength and retry once
+            safe_strength = max(0.2, strength * 0.75)
+            init_t = int(steps * float(safe_strength))
+            t_start = max(steps - init_t, 0)
+            start_t = timesteps[t_start]
+            if sigmas is not None and hasattr(self._pipe.scheduler, "index_for_timestep"):
+                idx = self._pipe.scheduler.index_for_timestep(start_t, timesteps)
+                sigma = sigmas[idx].to(device=z0_f32.device, dtype=z0_f32.dtype)
+                latents_f32 = z0_f32 + noise_f32 * sigma
+            else:
+                latents_f32 = self._pipe.scheduler.add_noise(
+                    z0_f32, noise_f32, start_t.unsqueeze(0).to(device=device)
+                )
+
+        # cast back to the model dtype before denoising
+        latents = latents_f32.to(dtype=model_dtype, device=device)
+
+        # Make sure noise matches the model dtype (not the VAE dtype)
+        model_dtype = next(self._pipe.unet.parameters()).dtype
+        noise = noise.to(dtype=model_dtype)
+
+        # 5) (Optional) bypass for debugging
+        if self._debug_disable_custom_latents:
+            image = self._pipe(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                image=pil,
+                strength=strength,
+                guidance_scale=guidance,
+                num_inference_steps=steps,
+            ).images[0]
+            # cache
+            if self._prev_noise is None:
+                self._prev_noise = torch.randn_like(z0)
+            self._prev_frame = frame_rgb_uint8.copy()
+            self._prev_z0 = z0.detach()
+            return np.array(image)
+
+        # 6) IMPORTANT: let the pipeline add noise; we only supply our warped noise
+        #    Do NOT pass `latents=` here for SD-XL img2img.
         image = self._pipe(
             prompt=prompt,
             negative_prompt=negative_prompt,
-            image=pil,  # still pass for validation; latents take precedence
+            image=pil,
             strength=strength,
             guidance_scale=guidance,
             num_inference_steps=steps,
-            latents=latents,
+            noise=noise,                      # <<--- our flow-warped noise
+            # latents=...  # DO NOT pass
         ).images[0]
 
         # cache for next frame
@@ -181,6 +241,7 @@ class FlowWarpedVideoPipeline(MildlyStableVideoPipeline):
         self._prev_z0 = z0.detach()
 
         return np.array(image)
+
 
     def _transform_frame(self, frame):
         """
