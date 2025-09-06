@@ -46,8 +46,9 @@ if __name__ == "__main__":
     input_video = os.path.join(INPUT_DIR, INPUT_VIDEO_NAME)
     output_video = os.path.join(OUTPUT_DIR, OUTPUT_VIDEO_NAME)
 
-    prompt =  "Terrible monster spiders in a web, cinematic lighting, psychedelic colors, nightmarish"
-    negative_prompt = "distortions, blurred"
+    prompt =  "ukiyo-e woodblock print landscape, flat limited color palette, high contrast, impressive massive clouds"
+    negative_prompt = "photorealistic, modern camera, glossy, 3d render, depth of field, bokeh, lens flare"
+
 
     # Transform the video
     # NOTE: needs more continuity
@@ -55,12 +56,12 @@ if __name__ == "__main__":
     pipe.do_magic(input_video, output_video,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                guidance_scale=13,
-                image_strength=0.25,
+                guidance_scale=7,
+                image_strength=0.35,
                 inferring_steps=30, 
-                initial_frame_guidance_scale=13, 
+                initial_frame_guidance_scale=9, 
                 initial_image_strength=0.25, 
-                last_frame_weight=0.4)
+                last_frame_weight=0.7)
     
     # At least on Windows, the output video does not necessarily work on default media player (works with ffplay, though)
     # Convert the video to mp4 to ensure compatibility

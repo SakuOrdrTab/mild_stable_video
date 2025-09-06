@@ -44,6 +44,7 @@ class MildlyStableXLVideoPipeline(MildlyStableVideoPipeline):
                                             image=pil_image,
                                             num_inference_steps=40,
                                             strength=self._initial_image_strength,
+                                            seed=42,
                                             guidance_scale=self._initial_frame_guidance_scale).images[0]
 
         transformed_frame = np.array(transformed_image)
