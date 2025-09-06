@@ -13,6 +13,7 @@ from mildlyStableVideoPipeline import MildlyStableVideoPipeline
 # How many imagesd are saved in an array and blended
 LATENT_ARRAY_SIZE = 3
 
+
 class LatentStableVideoPipeline(MildlyStableVideoPipeline):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -22,12 +23,12 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
     def _blend_latents(self):
         # Stack the arrays along a new axis (axis=0)
         stacked_arrays = np.stack(self._earlier_latents, axis=0)
-        
+
         # Calculate the average of the elements along the new axis (axis=0)
         averaged_array = np.mean(stacked_arrays, axis=0)
 
         return averaged_array
-    
+
     def _transform_frame(self, frame):
         # Resize the frame to 640x480
         resized_frame = cv2.resize(frame, (640, 480))
@@ -37,15 +38,19 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
 
         with torch.no_grad():
             # Generate latent representations
-            latent_result = self._pipe(prompt=self._prompt,
-                                       image=pil_image,  # ensure you use pil_image instead of frame
-                                       strength=0.05,
-                                       guidance_scale=10,
-                                       output_type="latent")
+            latent_result = self._pipe(
+                prompt=self._prompt,
+                image=pil_image,  # ensure you use pil_image instead of frame
+                strength=0.05,
+                guidance_scale=10,
+                output_type="latent",
+            )
 
         latent_result = latent_result.images
 
-        latent_image_tensor  = self._pipe.vae.decode(latent_result).sample  # Get the tensor from DecoderOutput
+        latent_image_tensor = self._pipe.vae.decode(
+            latent_result
+        ).sample  # Get the tensor from DecoderOutput
 
         # Rescale the tensor values from [-1, 1] to [0, 1]
         latent_image_tensor = (latent_image_tensor + 0.5).clamp(0, 1)
@@ -54,7 +59,9 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
 
         # Assuming latent_image_tensor is already in the range [0, 1]
         # You can create a PIL image directly from a PyTorch tensor on GPU
-        latent_image = to_pil_image(latent_image_tensor[0])  # Convert the first tensor in the batch to a PIL image
+        latent_image = to_pil_image(
+            latent_image_tensor[0]
+        )  # Convert the first tensor in the batch to a PIL image
 
         # Manage the list of earlier latents
         if len(self._earlier_latents) < LATENT_ARRAY_SIZE:
@@ -67,14 +74,16 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
         # Blend latent vectors
         blended_latent = self._blend_latents()
 
-         # Generate final image from latent representation
-        final_image = self._pipe(prompt=self._prompt,
-                                 negative_prompt=self._negative_prompt,
-                                 image=blended_latent,
-                                 strength=self._strength,
-                                 guidance_scale=self._guidance,
-                                 num_inference_steps=self._passes,
-                                 output_type="pil").images[0]
+        # Generate final image from latent representation
+        final_image = self._pipe(
+            prompt=self._prompt,
+            negative_prompt=self._negative_prompt,
+            image=blended_latent,
+            strength=self._strength,
+            guidance_scale=self._guidance,
+            num_inference_steps=self._passes,
+            output_type="pil",
+        ).images[0]
 
         # Convert decoded image to numpy array
         transformed_frame = np.array(final_image)
@@ -83,7 +92,7 @@ class LatentStableVideoPipeline(MildlyStableVideoPipeline):
         self._last_transformed_image = transformed_frame.copy()
 
         return transformed_frame
-    
+
 
 if __name__ == "__main__":
     test_pipe = LatentStableVideoPipeline()
